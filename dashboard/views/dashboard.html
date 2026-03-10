@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModPanel — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --surface: #111118; --surface2: #16161f;
+    --border: #1e1e2e; --accent: #5865f2; --accent2: #eb459e;
+    --text: #e8e8f0; --muted: #6b6b80;
+    --red: #ed4245; --green: #57f287; --yellow: #fee75c; --orange: #ff9500;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; display: flex; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 260px; min-height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 24px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+  .logo-text span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  .guild-selector {
+    padding: 16px; border-bottom: 1px solid var(--border);
+  }
+  .guild-selector label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; display: block; margin-bottom: 8px; }
+  .guild-select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 10px 12px;
+    font-family: 'Syne', sans-serif; font-size: 14px; cursor: pointer;
+    appearance: none; outline: none;
+  }
+  .guild-select:focus { border-color: var(--accent); }
+
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-section-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 8px; margin-top: 16px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: var(--muted);
+    transition: all 0.15s; margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(88,101,242,0.15); color: var(--accent); }
+  .nav-item .icon { width: 20px; text-align: center; font-size: 16px; }
+
+  .sidebar-user {
+    padding: 16px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-role { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .logout-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px; border-radius: 6px; transition: color 0.15s; }
+  .logout-btn:hover { color: var(--red); }
+
+  /* ── MAIN ── */
+  .main { margin-left: 260px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  .topbar {
+    padding: 20px 32px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); position: sticky; top: 0; z-index: 50;
+  }
+  .page-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+  .topbar-right { display: flex; gap: 8px; }
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(87,242,135,0.1); border: 1px solid rgba(87,242,135,0.2);
+    border-radius: 999px; padding: 6px 14px;
+    font-size: 12px; font-family: 'DM Mono', monospace; color: var(--green);
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .content { padding: 32px; flex: 1; }
+
+  /* ── TABS ── */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ── STATS GRID ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--card-color, var(--accent));
+  }
+  .stat-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+  .stat-value { font-size: 36px; font-weight: 800; letter-spacing: -0.03em; }
+  .stat-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 32px; opacity: 0.15; }
+
+  /* ── SECTION ── */
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-title { font-size: 16px; font-weight: 700; }
+  .section-count { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; }
+
+  /* ── TABLE ── */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .table-search { padding: 16px; border-bottom: 1px solid var(--border); }
+  .search-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 10px 16px;
+    font-family: 'Syne', sans-serif; font-size: 14px; outline: none;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { padding: 12px 16px; text-align: left; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 12px 16px; font-size: 14px; }
+
+  .member-cell { display: flex; align-items: center; gap: 10px; }
+  .member-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+  .member-tag { font-weight: 600; font-size: 13px; }
+  .member-id { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); }
+
+  .role-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 4px; margin-bottom: 2px; }
+
+  .warn-badge { background: rgba(254,231,92,0.15); color: var(--yellow); border: 1px solid rgba(254,231,92,0.25); border-radius: 999px; padding: 2px 10px; font-size: 12px; font-family: 'DM Mono', monospace; }
+
+  .actions { display: flex; gap: 6px; }
+  .action-btn {
+    padding: 6px 12px; border-radius: 6px; border: 1px solid; font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: 'Syne', sans-serif; transition: all 0.15s;
+  }
+  .btn-warn { background: rgba(254,231,92,0.1); border-color: rgba(254,231,92,0.25); color: var(--yellow); }
+  .btn-warn:hover { background: rgba(254,231,92,0.2); }
+  .btn-kick { background: rgba(255,149,0,0.1); border-color: rgba(255,149,0,0.25); color: var(--orange); }
+  .btn-kick:hover { background: rgba(255,149,0,0.2); }
+  .btn-ban { background: rgba(237,66,69,0.1); border-color: rgba(237,66,69,0.25); color: var(--red); }
+  .btn-ban:hover { background: rgba(237,66,69,0.2); }
+
+  /* ── LOGS ── */
+  .log-item { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .log-item:last-child { border-bottom: none; }
+  .log-type-badge {
+    padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700;
+    font-family: 'DM Mono', monospace; letter-spacing: 0.05em; flex-shrink: 0; margin-top: 2px;
+  }
+  .log-BAN { background: rgba(237,66,69,0.15); color: var(--red); border: 1px solid rgba(237,66,69,0.25); }
+  .log-KICK { background: rgba(255,149,0,0.15); color: var(--orange); border: 1px solid rgba(255,149,0,0.25); }
+  .log-WARN { background: rgba(254,231,92,0.15); color: var(--yellow); border: 1px solid rgba(254,231,92,0.25); }
+  .log-info { flex: 1; }
+  .log-user { font-weight: 700; font-size: 14px; }
+  .log-reason { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .log-meta { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); margin-top: 4px; }
+  .log-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 420px; animation: modalIn 0.2s ease; }
+  @keyframes modalIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .modal-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 12px 14px;
+    font-family: 'Syne', sans-serif; font-size: 14px; outline: none; margin-bottom: 16px;
+  }
+  .modal-input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn-cancel { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; }
+  .btn-confirm { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+  .btn-confirm.danger { background: var(--red); color: white; }
+  .btn-confirm.warning { background: var(--yellow); color: #000; }
+  .btn-confirm.orange { background: var(--orange); color: white; }
+
+  /* ── EMPTY/LOADING ── */
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; }
+  .loading { text-align: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 13px; }
+
+  /* ── TOAST ── */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 18px; display: flex; align-items: center; gap: 10px;
+    font-size: 14px; font-weight: 600; min-width: 240px;
+    animation: toastIn 0.3s ease;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  @keyframes toastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error { border-left: 3px solid var(--red); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🛡️</div>
+    <div class="logo-text">Mod<span>Panel</span></div>
+  </div>
+  <div class="guild-selector">
+    <label>Serveur actif</label>
+    <select class="guild-select" id="guildSelect" onchange="onGuildChange()">
+      <option value="">Chargement...</option>
+    </select>
+  </div>
+  <div class="nav">
+    <div class="nav-section-label">Navigation</div>
+    <div class="nav-item active" onclick="showTab('overview')"><span class="icon">📊</span> Vue d'ensemble</div>
+    <div class="nav-item" onclick="showTab('members')"><span class="icon">👥</span> Membres</div>
+    <div class="nav-item" onclick="showTab('logs')"><span class="icon">📋</span> Logs de modération</div>
+  </div>
+  <div class="sidebar-user" id="sidebarUser">
+    <img class="user-avatar" src="" id="userAvatar" alt="">
+    <div class="user-info">
+      <div class="user-name" id="userName">Chargement...</div>
+      <div class="user-role">Administrateur</div>
+    </div>
+    <button class="logout-btn" onclick="window.location='/auth/logout'" title="Déconnexion">↩</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Vue d'ensemble</div>
+    <div class="topbar-right">
+      <div class="status-pill"><span class="status-dot"></span>Bot en ligne</div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- TAB: OVERVIEW -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="stats-grid">
+        <div class="stat-card" style="--card-color:var(--accent)">
+          <div class="stat-label">Serveurs</div>
+          <div class="stat-value" id="stat-guilds">—</div>
+          <div class="stat-icon">🌐</div>
+        </div>
+        <div class="stat-card" style="--card-color:var(--red)">
+          <div class="stat-label">Bans total</div>
+          <div class="stat-value" id="stat-bans">—</div>
+          <div class="stat-icon">🔨</div>
+        </div>
+        <div class="stat-card" style="--card-color:var(--orange)">
+          <div class="stat-label">Kicks total</div>
+          <div class="stat-value" id="stat-kicks">—</div>
+          <div class="stat-icon">👢</div>
+        </div>
+        <div class="stat-card" style="--card-color:var(--yellow)">
+          <div class="stat-label">Warns total</div>
+          <div class="stat-value" id="stat-warns">—</div>
+          <div class="stat-icon">⚠️</div>
+        </div>
+      </div>
+
+      <div class="section-header"><div class="section-title">Dernières actions</div></div>
+      <div class="table-wrap" id="recentLogs">
+        <div class="loading">Chargement...</div>
+      </div>
+    </div>
+
+    <!-- TAB: MEMBERS -->
+    <div class="tab-content" id="tab-members">
+      <div class="table-wrap">
+        <div class="table-search">
+          <input class="search-input" type="text" placeholder="🔍  Rechercher un membre..." oninput="filterMembers(this.value)">
+        </div>
+        <div id="membersTable"><div class="loading">Sélectionne un serveur...</div></div>
+      </div>
+    </div>
+
+    <!-- TAB: LOGS -->
+    <div class="tab-content" id="tab-logs">
+      <div class="table-wrap" id="logsContainer">
+        <div class="loading">Sélectionne un serveur...</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-sub" id="modalSub"></div>
+    <input class="modal-input" id="modalReason" type="text" placeholder="Raison (optionnel)">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-confirm" id="modalConfirm" onclick="confirmAction()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+let currentGuildId = null;
+let currentAction = null;
+let allMembers = [];
+
+// ── INIT ────────────────────────────────────────────
+
+async function init() {
+  try {
+    const me = await fetch('/api/me').then(r => r.json());
+    document.getElementById('userName').textContent = me.username;
+    document.getElementById('userAvatar').src = me.avatar
+      ? `https://cdn.discordapp.com/avatars/${me.id}/${me.avatar}.png`
+      : `https://cdn.discordapp.com/embed/avatars/0.png`;
+
+    const guilds = await fetch('/api/guilds').then(r => r.json());
+    const select = document.getElementById('guildSelect');
+    select.innerHTML = guilds.length
+      ? guilds.map(g => `<option value="${g.id}">${g.name}</option>`).join('')
+      : '<option value="">Aucun serveur trouvé</option>';
+
+    if (guilds.length) { currentGuildId = guilds[0].id; loadCurrentGuild(); }
+    loadStats();
+  } catch(e) { console.error(e); }
+}
+
+async function loadStats() {
+  try {
+    const s = await fetch('/api/stats').then(r => r.json());
+    document.getElementById('stat-guilds').textContent = s.guilds ?? '—';
+    document.getElementById('stat-bans').textContent = s.bans ?? '0';
+    document.getElementById('stat-kicks').textContent = s.kicks ?? '0';
+    document.getElementById('stat-warns').textContent = s.warns ?? '0';
+  } catch(e) {}
+}
+
+function onGuildChange() {
+  currentGuildId = document.getElementById('guildSelect').value;
+  if (currentGuildId) loadCurrentGuild();
+}
+
+function loadCurrentGuild() {
+  loadMembers();
+  loadLogs();
+}
+
+// ── TABS ────────────────────────────────────────────
+
+const pageTitles = { overview: 'Vue d\'ensemble', members: 'Membres', logs: 'Logs de modération' };
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  document.getElementById('pageTitle').textContent = pageTitles[name];
+}
+
+// ── MEMBERS ─────────────────────────────────────────
+
+async function loadMembers() {
+  if (!currentGuildId) return;
+  document.getElementById('membersTable').innerHTML = '<div class="loading">Chargement des membres...</div>';
+  try {
+    allMembers = await fetch(`/api/guild/${currentGuildId}/members`).then(r => r.json());
+    renderMembers(allMembers);
+  } catch(e) { document.getElementById('membersTable').innerHTML = '<div class="empty"><div class="empty-icon">❌</div><div class="empty-text">Erreur de chargement</div></div>'; }
+}
+
+function renderMembers(members) {
+  if (!members.length) {
+    document.getElementById('membersTable').innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Aucun membre trouvé</div></div>';
+    return;
+  }
+  const rows = members.map(m => `
+    <tr>
+      <td><div class="member-cell">
+        <img class="member-avatar" src="${m.avatar}" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'" alt="">
+        <div><div class="member-tag">${escHtml(m.tag)}</div><div class="member-id">${m.id}</div></div>
+      </div></td>
+      <td>${m.roles.slice(0,3).map(r => `<span class="role-badge" style="background:${r.color}22;color:${r.color};border:1px solid ${r.color}44">${escHtml(r.name)}</span>`).join('') || '<span style="color:var(--muted);font-size:12px">Aucun rôle</span>'}</td>
+      <td>${m.warnings > 0 ? `<span class="warn-badge">⚠️ ${m.warnings}</span>` : '<span style="color:var(--muted);font-size:12px">—</span>'}</td>
+      <td><div class="actions">
+        <button class="action-btn btn-warn" onclick="openModal('warn','${m.id}','${escHtml(m.tag)}')">Warn</button>
+        <button class="action-btn btn-kick" onclick="openModal('kick','${m.id}','${escHtml(m.tag)}')">Kick</button>
+        <button class="action-btn btn-ban" onclick="openModal('ban','${m.id}','${escHtml(m.tag)}')">Ban</button>
+      </div></td>
+    </tr>`).join('');
+  document.getElementById('membersTable').innerHTML = `
+    <table><thead><tr><th>Membre</th><th>Rôles</th><th>Avertissements</th><th>Actions</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+function filterMembers(q) {
+  const filtered = allMembers.filter(m => m.tag.toLowerCase().includes(q.toLowerCase()) || m.id.includes(q));
+  renderMembers(filtered);
+}
+
+// ── LOGS ────────────────────────────────────────────
+
+async function loadLogs() {
+  if (!currentGuildId) return;
+  const containers = ['logsContainer', 'recentLogs'];
+  containers.forEach(id => document.getElementById(id).innerHTML = '<div class="loading">Chargement...</div>');
+  try {
+    const logs = await fetch(`/api/guild/${currentGuildId}/logs`).then(r => r.json());
+    const html = logs.length ? logs.map(l => `
+      <div class="log-item">
+        <img class="log-avatar" src="${l.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'" alt="">
+        <span class="log-type-badge log-${l.type}">${l.type}</span>
+        <div class="log-info">
+          <div class="log-user">${escHtml(l.user)}</div>
+          <div class="log-reason">Raison : ${escHtml(l.reason || 'Aucune')}</div>
+          <div class="log-meta">${l.moderator ? `Par ${escHtml(l.moderator)} · ` : ''}${formatDate(l.date)}</div>
+        </div>
+      </div>`).join('')
+      : '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Aucun log de modération</div></div>';
+    containers.forEach(id => document.getElementById(id).innerHTML = html);
+  } catch(e) {
+    containers.forEach(id => document.getElementById(id).innerHTML = '<div class="empty"><div class="empty-icon">❌</div><div class="empty-text">Erreur de chargement</div></div>');
+  }
+}
+
+// ── MODAL ────────────────────────────────────────────
+
+const modalConfig = {
+  warn:  { title: '⚠️ Avertir', color: 'warning', verb: 'warn' },
+  kick:  { title: '👢 Expulser', color: 'orange', verb: 'kick' },
+  ban:   { title: '🔨 Bannir', color: 'danger', verb: 'ban' },
+};
+
+function openModal(type, userId, userTag) {
+  const cfg = modalConfig[type];
+  currentAction = { type, userId };
+  document.getElementById('modalTitle').textContent = cfg.title + ' ' + userTag;
+  document.getElementById('modalSub').textContent = `Confirme l'action sur ${userTag}`;
+  document.getElementById('modalReason').value = '';
+  const btn = document.getElementById('modalConfirm');
+  btn.textContent = cfg.title;
+  btn.className = `btn-confirm ${cfg.color}`;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  currentAction = null;
+}
+
+async function confirmAction() {
+  if (!currentAction || !currentGuildId) return;
+  const { type, userId } = currentAction;
+  const reason = document.getElementById('modalReason').value;
+  closeModal();
+  try {
+    const res = await fetch(`/api/guild/${currentGuildId}/${type}/${userId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    const data = await res.json();
+    if (data.success) { toast(`Action effectuée avec succès`, 'success'); loadCurrentGuild(); loadStats(); }
+    else toast(`Erreur : ${data.error}`, 'error');
+  } catch(e) { toast('Erreur réseau', 'error'); }
+}
+
+// ── UTILS ────────────────────────────────────────────
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = (type === 'success' ? '✅ ' : '❌ ') + msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+init();
+</script>
+</body>
+</html>

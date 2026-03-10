@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModPanel — Discord Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #5865f2;
+    --accent2: #eb459e;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --red: #ed4245;
+    --green: #57f287;
+    --yellow: #fee75c;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0;
+    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.4;
+  }
+  .glow {
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.12;
+    pointer-events: none;
+  }
+  .glow-1 { background: var(--accent); top: -200px; left: -200px; animation: drift1 8s ease-in-out infinite; }
+  .glow-2 { background: var(--accent2); bottom: -200px; right: -200px; animation: drift2 10s ease-in-out infinite; }
+  @keyframes drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} }
+  @keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-40px,-60px)} }
+
+  .hero {
+    position: relative; z-index: 1;
+    text-align: center;
+    animation: fadeUp 0.8s ease both;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(88,101,242,0.15);
+    border: 1px solid rgba(88,101,242,0.3);
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: #a5b4fc;
+    margin-bottom: 32px;
+    letter-spacing: 0.05em;
+  }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  h1 {
+    font-size: clamp(48px, 8vw, 88px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    margin-bottom: 24px;
+  }
+  h1 .word-mod { color: var(--text); }
+  h1 .word-panel {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 18px;
+    color: var(--muted);
+    font-weight: 400;
+    max-width: 480px;
+    margin: 0 auto 48px;
+    line-height: 1.6;
+  }
+
+  .login-btn {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: var(--accent);
+    color: white;
+    text-decoration: none;
+    padding: 16px 36px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.1));
+    transition: opacity 0.2s;
+    opacity: 0;
+  }
+  .login-btn:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(88,101,242,0.4); }
+  .login-btn:hover::before { opacity: 1; }
+  .login-btn svg { width: 22px; height: 22px; }
+
+  .btn-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 0; }
+
+  .invite-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: transparent;
+    color: var(--text);
+    text-decoration: none;
+    padding: 16px 36px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .invite-btn:hover { border-color: var(--accent); color: #a5b4fc; transform: translateY(-2px); }
+
+  .features {
+    display: flex; gap: 16px; margin-top: 64px;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .feat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+    animation: fadeUp 0.8s ease both;
+  }
+  .feat:nth-child(1){animation-delay:0.2s}
+  .feat:nth-child(2){animation-delay:0.3s}
+  .feat:nth-child(3){animation-delay:0.4s}
+  .feat-icon { font-size: 16px; }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="glow glow-1"></div>
+<div class="glow glow-2"></div>
+<div class="hero">
+  <div class="badge"><span class="badge-dot"></span>Système en ligne</div>
+  <h1><span class="word-mod">Mod</span><span class="word-panel">Panel</span></h1>
+  <p class="subtitle">Dashboard de modération pour ton serveur Discord. Bannis, expulse, avertis — tout depuis une interface centralisée.</p>
+  <div class="btn-row">
+    <a href="/auth/discord" class="login-btn">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+      Connexion avec Discord
+    </a>
+    <a href="/invite" class="invite-btn" target="_blank">
+      ➕ Ajouter le bot
+    </a>
+  </div>
+  <div class="features">
+    <div class="feat"><span class="feat-icon">🛡️</span> Modération complète</div>
+    <div class="feat"><span class="feat-icon">📋</span> Logs en temps réel</div>
+    <div class="feat"><span class="feat-icon">👥</span> Gestion des membres</div>
+  </div>
+</div>
+</body>
+</html>
