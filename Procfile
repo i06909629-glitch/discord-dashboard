@@ -1,1 +1,1 @@
-web: node dashboard/server.js
+web: node dashboard/server.js & node bot/index.js
